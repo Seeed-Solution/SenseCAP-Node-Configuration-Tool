@@ -1,24 +1,11 @@
-# sensecap_node_cfg_tool
+# SenseCAP Node Configuration Tool
 
-## Project setup
-```
-yarn install
-```
+A GUI tool for configuring SenseCAP node via serial port. 
 
-### Compiles and hot-reloads for development
-```
-yarn serve
-```
+Supports Windows and MacOS.
 
-### Compiles and minifies for production
-```
-yarn build
-```
+Check out `SenseCAP` [here](https://solution.seeedstudio.com/product).
 
-### Lints and fixes files
-```
-yarn lint
-```
+![sensecap](https://user-images.githubusercontent.com/5130185/76136615-52338a80-606e-11ea-88b4-1db5417df243.png)
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+
