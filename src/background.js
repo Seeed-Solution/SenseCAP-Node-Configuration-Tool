@@ -5,11 +5,18 @@ import {
   createProtocol,
   /* installVueDevtools */
 } from 'vue-cli-plugin-electron-builder/lib'
+const SerialPort = require('serialport')
+const { ipcMain } = require('electron')
+
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let win
+
+let serialPorts = []
+let selectedSerialPort
+let serial
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: { secure: true, standard: true } }])
@@ -44,6 +51,7 @@ app.on('window-all-closed', () => {
   // On macOS it is common for applications and their menu bar
   // to stay active until the user quits explicitly with Cmd + Q
   if (process.platform !== 'darwin') {
+    serialClose()
     app.quit()
   }
 })
@@ -54,6 +62,10 @@ app.on('activate', () => {
   if (win === null) {
     createWindow()
   }
+})
+
+app.on('will-quit', () => {
+  serialClose()
 })
 
 // This method will be called when Electron has finished
@@ -87,7 +99,110 @@ if (isDevelopment) {
     })
   } else {
     process.on('SIGTERM', () => {
+      serialClose()
+      ipcMain.removeAllListeners()
       app.quit()
     })
   }
 }
+
+// IPC
+ipcMain.on('init-serial-req', (event, arg) => {
+  console.log('init-serial-req ...')
+
+  SerialPort.list().then(ports => {
+    serialPorts = ports
+    console.log(ports)
+
+    let opened = false
+    if (serial && serial.isOpen) opened = true;
+
+    let resp = {
+      ports: ports,
+      selectedPort: selectedSerialPort,
+      opened: opened
+    }
+
+    event.reply('init-serial-resp', resp)
+  })
+})
+
+function serialOpen(event) {
+  serial = new SerialPort(selectedSerialPort, {
+    baudRate: 115200,
+    autoOpen: false
+  })
+
+  let h = setTimeout(() => {
+    event.reply('serial-open-resp', {opened: false, reason: 'timeout'})
+  }, 5000)
+
+  serial.on('open', () => {
+    clearTimeout(h)
+    event.reply('serial-open-resp', {opened: true, reason: ''})
+  })
+
+  serial.on('data', (data) => {
+    if (win) {
+      win.webContents.send('serial-tx', data)
+    }
+  })
+
+  serial.open()
+}
+
+function serialClose(cb) {
+  if (serial) {
+    serial.close((err) => {
+      serial = null
+      if (cb) cb()
+    })
+  }
+}
+
+ipcMain.on('serial-open-req', (event, selPort) => {
+  console.log('serial-open-req ...', selPort)
+
+  if (serial && serial.isOpen) {
+    if (selPort === selectedSerialPort) {
+      console.log('already opened')
+      event.reply('serial-open-resp', {opened: true, reason: 'already opened'})
+      return
+    } else {
+      console.warn('request to open another port, rather', selectedSerialPort)
+      selectedSerialPort = selPort
+      serialClose(() => {
+        serialOpen(event)
+      })
+    }
+  } else {
+    selectedSerialPort = selPort
+    serialOpen(event)
+  }
+})
+
+ipcMain.on('serial-close-req', (event, arg) => {
+  console.log('serial-close-req ...')
+
+  if (!serial || !serial.isOpen) {
+    console.log('already closed')
+    event.reply('serial-close-resp', {closed: true, reason: 'already closed'})
+    return
+  }
+
+  let h = setTimeout(() => {
+    event.reply('serial-close-resp', {closed: false, reason: 'timeout'})
+  })
+
+  serialClose(() => {
+    clearTimeout(h)
+    event.reply('serial-close-resp', {closed: true, reason: ''})
+  })
+})
+
+ipcMain.on('serial-rx', (event, arg) => {
+  if (serial && serial.isOpen) {
+    serial.write(arg)
+  }
+})
+
