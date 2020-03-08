@@ -53,6 +53,10 @@ module.exports = {
           "entitlementsInherit": "build/entitlements.mac.plist"
         },
         "afterSign": "scripts/notarize.js",
+        "linux": {
+          "target": "AppImage",
+          "icon": "build/iconset"
+        },
         "publish": "github"
       }
     }
