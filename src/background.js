@@ -23,9 +23,17 @@ protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: { secure: true
 
 function createWindow () {
   // Create the browser window.
+  let w = 1024
+  let h = 620
+
+  if (process.platform === 'win32') {
+    h += 20  //for menu bar
+  }
+
   win = new BrowserWindow({
-    width: 960,
-    height: 620,
+    show: false,
+    width: w,
+    height: h,
     webPreferences: {
       nodeIntegration: true
     }
@@ -43,6 +51,10 @@ function createWindow () {
 
   win.on('closed', () => {
     win = null
+  })
+
+  win.once('ready-to-show', () => {
+    win.show()
   })
 }
 
