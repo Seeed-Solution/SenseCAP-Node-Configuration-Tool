@@ -1,12 +1,13 @@
 'use strict'
 
-import { app, protocol, BrowserWindow } from 'electron'
+import { app, protocol, BrowserWindow, shell, ipcMain } from 'electron'
 import {
   createProtocol,
   /* installVueDevtools */
 } from 'vue-cli-plugin-electron-builder/lib'
 const SerialPort = require('serialport')
-const { ipcMain } = require('electron')
+const Menu = require("electron-create-menu")
+import i18next from 'i18next'
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
@@ -17,6 +18,57 @@ let win
 let serialPorts = []
 let selectedSerialPort
 let serial
+
+let appName = "SenseCAP Node Configuration Tool"
+
+/**
+ * The Menu's locale only follows the system, the user selection from the GUI doesn't affect
+ */
+async function translateMenu() {
+  let sysLocale = process.env.LOCALE || app.getLocale()
+  console.log('the sys locale:', sysLocale)
+
+  await i18next.init({
+    lng: sysLocale,
+    fallbackLng: 'en',
+    debug: true,
+    resources: {
+      zh: {
+        translation: {
+          "File": "文件",
+          "Edit": "编辑",
+          "Speech": "语音",
+          "View": "视图",
+          "About": "关于",
+          "Hide": "隐藏",
+          "Quit": "退出",
+          "Report an issue": "报告错误",
+        }
+      }
+    }
+  }).then((t) => {
+    Menu((defaultMenu, separator) => {
+      defaultMenu[0].submenu[0].label = t('About') + " " + appName
+      defaultMenu[0].submenu[4].label = t('Hide') + " " + appName
+      defaultMenu[0].submenu[8].label = t('Quit') + " " + appName
+      if (!isDevelopment) defaultMenu[3].submenu[2].showOn = 'neverMatch'
+      defaultMenu[5].submenu.push({
+        label: t('Report an issue'),
+        click: () => {
+          shell.openExternal('https://github.com/Seeed-Solution/SenseCAP-Node-Configuration-Tool/issues')
+        }
+      })
+      console.log(JSON.stringify(defaultMenu))
+      return defaultMenu
+    },
+    // This function is used to translate the default labels
+    t
+  )})
+}
+
+app.setAboutPanelOptions({
+  applicationName: appName,
+})
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: { secure: true, standard: true } }])
@@ -84,6 +136,9 @@ app.on('will-quit', () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
+
+  await translateMenu()
+
   if (isDevelopment && !process.env.IS_TEST) {
     // Install Vue Devtools
     // Devtools extensions are broken in Electron 6.0.0 and greater
