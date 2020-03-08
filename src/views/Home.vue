@@ -100,7 +100,7 @@ export default {
   data() {
     return {
       connectBtnText: 'Connect',
-      connectBtnColor: 'primary',
+      connectBtnColor: 'secondary',
       serialVSelectDisable: false,
       selectedSerialPort: null,
       serialPorts: [],
@@ -189,11 +189,11 @@ export default {
     serialOpened(newVal, oldVal) {
       if (newVal) {
         this.connectBtnText = 'Disconnect'
-        this.connectBtnColor = 'secondary'
+        this.connectBtnColor = 'primary'
         this.serialVSelectDisable = true
       } else {
         this.connectBtnText = 'Connect'
-        this.connectBtnColor = 'primary'
+        this.connectBtnColor = 'secondary'
         this.serialVSelectDisable = false
       }
     }
