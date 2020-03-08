@@ -24,7 +24,7 @@ module.exports = {
           'runAfterFinish': false
         },
         'win': {
-          'target': 'nsis',
+          'target': ['nsis', 'portable'],
           'icon': 'build/icon.ico',
         },
         'dmg': {
@@ -54,7 +54,7 @@ module.exports = {
         },
         "afterSign": "scripts/notarize.js",
         "linux": {
-          "target": "AppImage",
+          "target": ["AppImage", "deb"],
           "icon": "build/iconset"
         },
         "publish": "github"

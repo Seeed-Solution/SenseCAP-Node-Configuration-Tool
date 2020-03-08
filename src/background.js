@@ -27,7 +27,7 @@ function createWindow () {
   let h = 620
 
   if (process.platform === 'win32') {
-    h += 20  //for menu bar
+    h += 30  //for menu bar
   }
 
   win = new BrowserWindow({
