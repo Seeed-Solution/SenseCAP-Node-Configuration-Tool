@@ -21,7 +21,7 @@ const routes = [
 ]
 
 const router = new VueRouter({
-  mode: 'history',
+  mode: 'hash', //histroy mode not work for electron-builder production pack
   base: process.env.BASE_URL,
   routes
 })
