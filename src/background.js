@@ -43,7 +43,7 @@ async function translateMenu() {
           "Hide": "隐藏",
           "Quit": "退出",
           "Report an issue": "报告错误",
-        }
+        } //other keywords are translated by the OS automatically
       }
     }
   }).then((t) => {
@@ -66,9 +66,11 @@ async function translateMenu() {
   )})
 }
 
-app.setAboutPanelOptions({
-  applicationName: appName,
-})
+if (process.platform === 'darwin') {
+  app.setAboutPanelOptions({
+    applicationName: appName,
+  })
+}
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: { secure: true, standard: true } }])
