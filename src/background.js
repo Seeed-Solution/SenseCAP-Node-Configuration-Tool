@@ -40,7 +40,7 @@ async function translateMenu() {
   await i18next.init({
     lng: sysLocale,
     fallbackLng: 'en',
-    debug: true,
+    debug: isDevelopment,
     resources: {
       zh: {
         translation: {

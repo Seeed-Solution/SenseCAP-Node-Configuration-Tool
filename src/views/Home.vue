@@ -3,6 +3,7 @@
     <v-row>
       <!-- 左半屏，输入框 -->
       <v-col cols="6">
+        <v-form ref="form1">
         <v-row class="pt-1">
           <!-- Fields -->
           <v-col cols="12" md="6" class="py-0">
@@ -23,42 +24,47 @@
             </v-text-field>
           </v-col>
           <v-col cols="12" md="6" class="pb-0">
-            <v-text-field v-model="deviceEUI" label="Device EUI" outlined dense>
+            <v-text-field v-model="deviceEUI" label="Device EUI"
+              :rules="deviceEUIRules" outlined dense>
             </v-text-field>
           </v-col>
           <v-col cols="12" md="12" class="py-0">
-            <v-text-field v-model="appEUI" label="App EUI" outlined dense>
+            <v-text-field v-model="appEUI" :label="labelAppEUI"
+              :rules="appEUIRules" outlined dense>
             </v-text-field>
           </v-col>
           <v-col cols="12" md="12" class="py-0">
-            <v-text-field v-model="appKey" label="App Key" outlined dense>
+            <v-text-field v-model="appKey" :label="labelAppKey"
+              :rules="appKeyRules" outlined dense>
             </v-text-field>
           </v-col>
           <v-col cols="12" md="6" class="py-0">
             <v-text-field v-model.number="dataInterval" type="number" label="Data Interval"
+              :rules="dataIntervalRules"
               suffix="minutes" outlined dense>
             </v-text-field>
           </v-col>
           <v-col cols="12" md="6" class="py-0">
             <v-text-field v-model.number="battery" type="number" label="Battery"
-              suffix="%" outlined dense>
+              suffix="%" disabled outlined dense>
             </v-text-field>
           </v-col>
           <v-col cols="12" md="6" class="py-0">
-            <v-text-field v-model="hwVer" label="Hardware Version" outlined dense>
+            <v-text-field v-model="hwVer" label="Hardware Version" disabled outlined dense>
             </v-text-field>
           </v-col>
           <v-col cols="12" md="6" class="py-0">
-            <v-text-field v-model="swVer" label="Software Version" outlined dense>
+            <v-text-field v-model="swVer" label="Software Version" disabled outlined dense>
             </v-text-field>
           </v-col>
           <!-- Buttons -->
           <v-col cols="12" class="py-0 d-flex justify-space-around">
-            <v-btn rounded color="secondary" width="120">Read</v-btn>
-            <v-btn rounded color="secondary" width="120">Write</v-btn>
-            <v-btn rounded color="secondary" width="120">Update Fw</v-btn>
+            <v-btn rounded color="secondary" width="120" @click.stop="readFn()">Read</v-btn>
+            <v-btn rounded color="secondary" width="120" @click.stop="writeFn()" :loading="writeLoading">Write</v-btn>
+            <v-btn rounded color="secondary" width="120" @click.stop="updateFwFn()" :loading="updateFwLoading">Update Fw</v-btn>
           </v-col>
         </v-row>
+        </v-form>
       </v-col>
       <!-- 右半屏，console -->
       <v-col cols="6">
@@ -94,30 +100,82 @@ const { ipcRenderer } = require('electron')
 const { Readable } = require('stream')
 const RegexParser = require('@serialport/parser-regex')
 const ReadlineParser = require('@serialport/parser-readline')
+const delayMs = ms => new Promise(res => setTimeout(res, ms))
 
 export default {
   name: 'Home',
   data() {
+    let rules = {
+      required: value => !!value || "Required.",
+      rangeWAN: value => (value >= 5 && value <=43200) || "Must between [5, 43200]",
+      rangePP: value => (value >= 5 && value <=720) || "Must between [5, 720]",
+      int: value => (/\.+/.test(value)) ? "Must be integer." : true,
+      eui16: value => (/^\w{16}$/.test(value)) || "Invalid LoRaWAN EUI (16 chars)",
+      eui32: value => (/^\w{32}$/.test(value)) || "Invalid LoRaPP EUI (32 chars)",
+    }
     return {
+      //rules
+      rules: rules,
+      deviceEUIRules: [rules.required, rules.eui16],
+      appEUIRules: [rules.required, rules.eui16],
+      appKeyRules: [rules.required, rules.eui32],
+      dataIntervalRules: [rules.required, rules.int, rules.rangeWAN],
+      //loading
+      writeLoading: false,
+      updateFwLoading: false,
+      //
       connectBtnText: 'Connect',
       connectBtnColor: 'secondary',
       serialVSelectDisable: false,
       selectedSerialPort: null,
       serialPorts: [],
       serialOpened: false,
+      labelAppEUI: 'App EUI',
+      labelAppKey: 'App Key',
       deviceType: 'LoRaWAN',
       deviceEUI: '',
+      deviceEUI2: '',
       appEUI: '',
+      appEUI2: '',
       appKey: '',
+      appKey2: '',
       dataInterval: 60,
+      dataInterval2: 60,
       battery: 100,
       hwVer: '',
       swVer: '',
       //stream parse
       stream: null,
+      pauseParseLine: false,
       //ota
       currentVersion: '',
 
+    }
+  },
+  watch: {
+    serialOpened(newVal, oldVal) {
+      if (newVal) {
+        this.connectBtnText = 'Disconnect'
+        this.connectBtnColor = 'primary'
+        this.serialVSelectDisable = true
+      } else {
+        this.connectBtnText = 'Connect'
+        this.connectBtnColor = 'secondary'
+        this.serialVSelectDisable = false
+      }
+    },
+    deviceType(newVal, oldVal) {
+      if (newVal === 'LoRaWAN') {
+        this.labelAppEUI = 'App EUI'
+        this.labelAppKey = 'App Key'
+        this.appEUIRules = [this.rules.required, this.rules.eui16]
+        this.dataIntervalRules = [this.rules.required, this.rules.int, this.rules.rangeWAN]
+      } else if (newVal === 'LoRaPP') {
+        this.labelAppEUI = 'KeyA'
+        this.labelAppKey = 'KeyB'
+        this.appEUIRules = [this.rules.required, this.rules.eui32]
+        this.dataIntervalRules = [this.rules.required, this.rules.int, this.rules.rangePP]
+      }
     }
   },
   methods: {
@@ -135,15 +193,99 @@ export default {
       }
     },
     readFn() {
-
+      ipcRenderer.send('serial-rx', 'h\r\n')
     },
     writeFn() {
+      this.deviceEUI = this.deviceEUI.trim()
+      this.appEUI = this.appEUI.trim()
+      this.appKey = this.appKey.trim()
 
+      if (!this.$refs.form1.validate()) return false
+
+      this.writeLoading = true
+
+      let needUpdateDeviceEUI = (this.deviceEUI !== this.deviceEUI2)
+      let needUpdateAppEUI = (this.appEUI !== this.appEUI2)
+      let needUpdateAppKey = (this.appKey !== this.appKey2)
+      let needUpdateDataInterval = (this.dataInterval !== this.dataInterval2)
+      console.log({
+        needUpdateDeviceEUI: needUpdateDeviceEUI,
+        needUpdateAppEUI: needUpdateAppEUI,
+        needUpdateAppKey: needUpdateAppKey,
+        needUpdateDataInterval: needUpdateDataInterval
+      })
+
+      if (!(needUpdateDeviceEUI || needUpdateAppEUI || needUpdateAppKey || needUpdateDataInterval)) {
+        console.log('no need to write')
+        this.writeLoading = false
+        return
+      }
+
+      this.pauseParseLine = true
+      ipcRenderer.send('serial-rx', '\r\n')
+      delayMs(500).then(() => {
+        ipcRenderer.send('serial-rx', 'h\r\n')
+      }).then(() => {
+        return delayMs(500)
+      })
+      .then(() => { //device EUI
+        this.pauseParseLine = false
+        if (needUpdateDeviceEUI) ipcRenderer.send('serial-rx', 'd\r\n')
+      }).then(() => {
+        if (needUpdateDeviceEUI) return delayMs(500)
+      }).then(() => {
+        if (needUpdateDeviceEUI) {
+          ipcRenderer.send('serial-rx', this.deviceEUI + '\r\n')
+        }
+      }).then(() => {
+        if (needUpdateDeviceEUI) return delayMs(1000)
+      })
+      .then(() => { //app EUI
+        if (needUpdateAppEUI) ipcRenderer.send('serial-rx', 'a\r\n')
+      }).then(() => {
+        if (needUpdateAppEUI) return delayMs(500)
+      }).then(() => {
+        if (needUpdateAppEUI) {
+          ipcRenderer.send('serial-rx', this.appEUI + '\r\n')
+        }
+      }).then(() => {
+        if (needUpdateAppEUI) return delayMs(1000)
+      })
+      .then(() => { //app Key
+        if (needUpdateAppKey) ipcRenderer.send('serial-rx', 'k\r\n')
+      }).then(() => {
+        if (needUpdateAppKey) return delayMs(500)
+      }).then(() => {
+        if (needUpdateAppKey) {
+          ipcRenderer.send('serial-rx', this.appKey + '\r\n')
+        }
+      }).then(() => {
+        if (needUpdateAppKey) return delayMs(1000)
+      })
+      .then(() => { //data Interval
+        if (needUpdateDataInterval) ipcRenderer.send('serial-rx', 'i\r\n')
+      }).then(() => {
+        if (needUpdateDataInterval) return delayMs(500)
+      }).then(() => {
+        if (needUpdateDataInterval) {
+          ipcRenderer.send('serial-rx', this.dataInterval + '\r\n')
+        }
+      }).then(() => {
+        if (needUpdateDataInterval) return delayMs(1000)
+      })
+      .catch((err) => {
+        console.warn('writeFn error:', err)
+      })
+      .finally(() => {
+        this.writeLoading = false
+      })
     },
     updateFwFn() {
 
     },
     parseLine(line) {
+      if (this.pauseParseLine) return
+
       let found
       found = line.match(/Device Type:\s+(\w+)/i)
       if (found) {
@@ -154,21 +296,30 @@ export default {
       if (found) {
         console.log('found device EUI:', found[1])
         this.deviceEUI = found[1]
+        this.deviceEUI2 = this.deviceEUI
+      }
+      found = line.match(/new Device EUI is\s+(\w+)/i)
+      if (found) {
+        console.log('confirm device EUI written:', found[1])
+        this.deviceEUI2 = found[1]
       }
       found = line.match(/App EUI:\s+(\w+)/i)
       if (found) {
         console.log('found App EUI:', found[1])
         this.appEUI = found[1]
+        this.appEUI2 = this.appEUI
       }
       found = line.match(/App Key:\s+(\w+)/i)
       if (found) {
         console.log('found App Key:', found[1])
         this.appKey = found[1]
+        this.appKey2 = this.appKey
       }
       found = line.match(/Data interval:\s+(\w+)/i)
       if (found) {
         console.log('found Data interval:', found[1])
         this.dataInterval = parseInt(found[1])
+        this.dataInterval2 = this.dataInterval
       }
       found = line.match(/Battery:\s+(\w+)%/i)
       if (found) {
@@ -184,19 +335,6 @@ export default {
       if (found) {
         console.log('found Software firmware:', found[1])
         this.swVer = found[1]
-      }
-    }
-  },
-  watch: {
-    serialOpened(newVal, oldVal) {
-      if (newVal) {
-        this.connectBtnText = 'Disconnect'
-        this.connectBtnColor = 'primary'
-        this.serialVSelectDisable = true
-      } else {
-        this.connectBtnText = 'Connect'
-        this.connectBtnColor = 'secondary'
-        this.serialVSelectDisable = false
       }
     }
   },
