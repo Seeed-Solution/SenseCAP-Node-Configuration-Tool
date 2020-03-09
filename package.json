@@ -23,6 +23,8 @@
     "@mdi/font": "^3.6.95",
     "core-js": "^3.6.4",
     "electron-create-menu": "^3.0.1",
+    "electron-log": "^4.0.7",
+    "electron-updater": "^4.2.4",
     "i18next": "^19.3.2",
     "roboto-fontface": "*",
     "serialport": "^8.0.7",

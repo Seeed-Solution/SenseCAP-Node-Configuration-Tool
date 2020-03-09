@@ -1,4 +1,4 @@
-'use strict'
+// 'use strict'
 
 import { app, protocol, BrowserWindow, shell, ipcMain } from 'electron'
 import {
@@ -8,8 +8,16 @@ import {
 const SerialPort = require('serialport')
 const Menu = require("electron-create-menu")
 import i18next from 'i18next'
+const { autoUpdater } = require("electron-updater")
+
+let appName = "SenseCAP Node Configuration Tool"
+app.name = appName
+
+const logger = require("electron-log")
+autoUpdater.logger = logger
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
+autoUpdater.logger.transports.file.level = isDevelopment ? "debug" : "info"
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -19,14 +27,15 @@ let serialPorts = []
 let selectedSerialPort
 let serial
 
-let appName = "SenseCAP Node Configuration Tool"
+
+let autoUpdateTimeHandler = null
 
 /**
  * The Menu's locale only follows the system, the user selection from the GUI doesn't affect
  */
 async function translateMenu() {
   let sysLocale = process.env.LOCALE || app.getLocale()
-  console.log('the sys locale:', sysLocale)
+  logger.info('the sys locale:', sysLocale)
 
   await i18next.init({
     lng: sysLocale,
@@ -39,6 +48,8 @@ async function translateMenu() {
           "Edit": "编辑",
           "Speech": "语音",
           "View": "视图",
+          "Window": "窗口",
+          "Help": "帮助",
           "About": "关于",
           "Hide": "隐藏",
           "Quit": "退出",
@@ -52,13 +63,15 @@ async function translateMenu() {
       defaultMenu[0].submenu[4].label = t('Hide') + " " + appName
       defaultMenu[0].submenu[8].label = t('Quit') + " " + appName
       if (!isDevelopment) defaultMenu[3].submenu[2].showOn = 'neverMatch'
+      defaultMenu[4].label = t('Window')
+      defaultMenu[5].label = t('Help')
       defaultMenu[5].submenu.push({
         label: t('Report an issue'),
         click: () => {
           shell.openExternal('https://github.com/Seeed-Solution/SenseCAP-Node-Configuration-Tool/issues')
         }
       })
-      console.log(JSON.stringify(defaultMenu))
+      logger.debug(JSON.stringify(defaultMenu))
       return defaultMenu
     },
     // This function is used to translate the default labels
@@ -71,6 +84,15 @@ if (process.platform === 'darwin') {
     applicationName: appName,
   })
 }
+
+// AutoUpdater
+autoUpdater.on('update-available', (info) => {
+  logger.info('update-available', JSON.stringify(info))
+})
+
+autoUpdater.on('update-not-available', (info) => {
+  logger.info('update-not-available', JSON.stringify(info))
+})
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: { secure: true, standard: true } }])
@@ -130,7 +152,8 @@ app.on('activate', () => {
   }
 })
 
-app.on('will-quit', () => {
+app.on('before-quit', () => {
+  if (autoUpdateTimeHandler) clearTimeout(autoUpdateTimeHandler)
   serialClose()
 })
 
@@ -155,7 +178,13 @@ app.on('ready', async () => {
     // }
 
   }
+
   createWindow()
+
+  autoUpdateTimeHandler = setTimeout(() => {
+    autoUpdater.checkForUpdatesAndNotify()
+    autoUpdateTimeHandler = null
+  }, 10000)
 })
 
 // Exit cleanly on request from parent process in development mode.
@@ -177,11 +206,11 @@ if (isDevelopment) {
 
 // IPC
 ipcMain.on('init-serial-req', (event, arg) => {
-  console.log('init-serial-req ...')
+  logger.info('init-serial-req ...')
 
   SerialPort.list().then(ports => {
     serialPorts = ports
-    console.log(ports)
+    logger.debug(ports)
 
     let opened = false
     if (serial && serial.isOpen) opened = true;
@@ -230,15 +259,15 @@ function serialClose(cb) {
 }
 
 ipcMain.on('serial-open-req', (event, selPort) => {
-  console.log('serial-open-req ...', selPort)
+  logger.info('serial-open-req ...', selPort)
 
   if (serial && serial.isOpen) {
     if (selPort === selectedSerialPort) {
-      console.log('already opened')
+      logger.info('already opened')
       event.reply('serial-open-resp', {opened: true, reason: 'already opened'})
       return
     } else {
-      console.warn('request to open another port, rather', selectedSerialPort)
+      logger.warn('request to open another port, rather', selectedSerialPort)
       selectedSerialPort = selPort
       serialClose(() => {
         serialOpen(event)
@@ -251,10 +280,10 @@ ipcMain.on('serial-open-req', (event, selPort) => {
 })
 
 ipcMain.on('serial-close-req', (event, arg) => {
-  console.log('serial-close-req ...')
+  logger.info('serial-close-req ...')
 
   if (!serial || !serial.isOpen) {
-    console.log('already closed')
+    logger.info('already closed')
     event.reply('serial-close-resp', {closed: true, reason: 'already closed'})
     return
   }
@@ -273,5 +302,12 @@ ipcMain.on('serial-rx', (event, arg) => {
   if (serial && serial.isOpen) {
     serial.write(arg)
   }
+})
+
+ipcMain.on('current-version-req', (event, arg) => {
+  logger.info('current-version-req ...')
+  let currentVersion = autoUpdater.currentVersion.version
+  logger.info(`the current version is: ${currentVersion}`)
+  event.reply('current-version-resp', {currentVersion: currentVersion})
 })
 

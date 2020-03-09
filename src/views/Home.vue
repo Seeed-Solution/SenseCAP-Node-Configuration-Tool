@@ -78,7 +78,7 @@
         </div>
       </v-col>
       <v-col cols="auto" class="d-flex flex-column align-center justify-center caption grey--text">
-        <div>v1.0.0</div>
+        <div>v{{currentVersion}}</div>
       </v-col>
     </v-row>
   </v-container>
@@ -115,6 +115,8 @@ export default {
       swVer: '',
       //stream parse
       stream: null,
+      //ota
+      currentVersion: '',
 
     }
   },
@@ -270,6 +272,13 @@ export default {
       // console.log(line, 'len:', line.length)
       this.parseLine(line)
     })
+    //ota
+    ipcRenderer.on('current-version-resp', (event, arg) => {
+      console.log('current-version-resp:', arg)
+      let {currentVersion} = arg
+      this.currentVersion = currentVersion
+    })
+    ipcRenderer.send('current-version-req')
   },
   beforeDestroy() {
     ipcRenderer.removeAllListeners()
