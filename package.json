@@ -1,7 +1,7 @@
 {
   "name": "sensecap_node_cfg_tool",
   "description": "SenseCAP Node Configuration Tool",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "homepage": "https://github.com/Seeed-Solution/SenseCAP-Node-Configuration-Tool",
   "repository": {
     "type": "git",
@@ -22,6 +22,7 @@
   "dependencies": {
     "@mdi/font": "^3.6.95",
     "core-js": "^3.6.4",
+    "crc": "^3.8.0",
     "electron-create-menu": "^3.0.1",
     "electron-log": "^4.0.7",
     "electron-updater": "^4.2.4",
