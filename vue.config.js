@@ -45,7 +45,7 @@ module.exports = {
         },
         'mac': {
           'category': 'public.app-category.developer-tools',
-          'target': 'dmg',
+          'target': 'default',
           'icon': 'build/icon.png',
           "hardenedRuntime" : true,
           "gatekeeperAssess": false,
