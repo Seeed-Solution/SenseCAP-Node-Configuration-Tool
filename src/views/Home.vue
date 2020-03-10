@@ -14,10 +14,9 @@
               outlined dense>
             </v-select>
           </v-col>
-          <v-col cols="12" md="6" class="py-0">
-            <div>
-              <v-btn rounded :color="connectBtnColor" @click="ConnectFn">{{connectBtnText}}</v-btn>
-            </div>
+          <v-col cols="12" md="6" class="py-0 d-flex justify-start">
+            <v-btn rounded :color="connectBtnColor" width="120"
+              @click="ConnectFn">{{connectBtnText}}</v-btn>
           </v-col>
           <v-col cols="12" md="6" class="pb-0">
             <v-text-field v-model="deviceType" label="Device Type" disabled outlined dense>
@@ -59,9 +58,17 @@
           </v-col>
           <!-- Buttons -->
           <v-col cols="12" class="py-0 d-flex justify-space-around">
-            <v-btn rounded color="secondary" width="120" @click.stop="readFn()">Read</v-btn>
-            <v-btn rounded color="secondary" width="120" @click.stop="writeFn()" :loading="writeLoading">Write</v-btn>
-            <v-btn rounded color="secondary" width="120" @click.stop="updateFwFn()" :loading="updateFwLoading">Update Fw</v-btn>
+            <v-btn rounded color="secondary" width="120"
+              @click.stop="readFn()"
+              :disabled="!serialOpened">Read</v-btn>
+            <v-btn rounded color="secondary" width="120"
+              @click.stop="writeFn()"
+              :loading="writeLoading"
+              :disabled="!serialOpened">Write</v-btn>
+            <v-btn rounded color="secondary" width="120"
+              @click.stop="updateFwFn()"
+              :loading="updateFwLoading"
+              :disabled="!serialOpened">Update Fw</v-btn>
           </v-col>
         </v-row>
         </v-form>
@@ -193,7 +200,7 @@ export default {
       }
     },
     readFn() {
-      ipcRenderer.send('serial-rx', 'h\r\n')
+      ipcRenderer.send('serial-rx', '\r\nh')
     },
     writeFn() {
       this.deviceEUI = this.deviceEUI.trim()
@@ -224,13 +231,13 @@ export default {
       this.pauseParseLine = true
       ipcRenderer.send('serial-rx', '\r\n')
       delayMs(500).then(() => {
-        ipcRenderer.send('serial-rx', 'h\r\n')
+        ipcRenderer.send('serial-rx', 'h')
       }).then(() => {
         return delayMs(500)
       })
       .then(() => { //device EUI
         this.pauseParseLine = false
-        if (needUpdateDeviceEUI) ipcRenderer.send('serial-rx', 'd\r\n')
+        if (needUpdateDeviceEUI) ipcRenderer.send('serial-rx', 'd')
       }).then(() => {
         if (needUpdateDeviceEUI) return delayMs(500)
       }).then(() => {
@@ -241,7 +248,7 @@ export default {
         if (needUpdateDeviceEUI) return delayMs(1000)
       })
       .then(() => { //app EUI
-        if (needUpdateAppEUI) ipcRenderer.send('serial-rx', 'a\r\n')
+        if (needUpdateAppEUI) ipcRenderer.send('serial-rx', 'a')
       }).then(() => {
         if (needUpdateAppEUI) return delayMs(500)
       }).then(() => {
@@ -252,7 +259,7 @@ export default {
         if (needUpdateAppEUI) return delayMs(1000)
       })
       .then(() => { //app Key
-        if (needUpdateAppKey) ipcRenderer.send('serial-rx', 'k\r\n')
+        if (needUpdateAppKey) ipcRenderer.send('serial-rx', 'k')
       }).then(() => {
         if (needUpdateAppKey) return delayMs(500)
       }).then(() => {
@@ -263,7 +270,7 @@ export default {
         if (needUpdateAppKey) return delayMs(1000)
       })
       .then(() => { //data Interval
-        if (needUpdateDataInterval) ipcRenderer.send('serial-rx', 'i\r\n')
+        if (needUpdateDataInterval) ipcRenderer.send('serial-rx', 'i')
       }).then(() => {
         if (needUpdateDataInterval) return delayMs(500)
       }).then(() => {
@@ -281,7 +288,27 @@ export default {
       })
     },
     updateFwFn() {
-
+      if (!this.serialOpened) return
+      ipcRenderer.send('serial-rx', '\r\n')
+      delayMs(500).then(() => {
+        ipcRenderer.send('serial-rx', 'h')
+      }).then(() => {
+        return delayMs(500)
+      })
+      .then(() => { //update firmware
+        this.pauseParseLine = true
+        ipcRenderer.send('serial-rx', 'u')
+      }).then(() => {
+        return delayMs(500)
+      }).then(() => {
+        ipcRenderer.send('select-file', this.selectedSerialPort)
+      })
+      .catch((err) => {
+        console.warn('update firmware error:', err)
+      })
+      .finally(() => {
+        // this.pauseParseLine = false
+      })
     },
     parseLine(line) {
       if (this.pauseParseLine) return
@@ -396,6 +423,9 @@ export default {
       let {closed, reason} = arg
       if (closed) {
         this.serialOpened = false
+
+        this.updateFwLoading = false
+        this.pauseParseLine = false
       } else {
         console.error('serial close failed:', reason)
       }
@@ -417,6 +447,14 @@ export default {
       this.currentVersion = currentVersion
     })
     ipcRenderer.send('current-version-req')
+    //update fw
+    ipcRenderer.on('update-fw-begin', (event) => {
+      this.updateFwLoading = true
+    })
+    ipcRenderer.on('update-fw-end', (event) => {
+      this.updateFwLoading = false
+      this.pauseParseLine = false
+    })
   },
   beforeDestroy() {
     ipcRenderer.removeAllListeners()

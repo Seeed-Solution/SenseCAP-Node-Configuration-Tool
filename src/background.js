@@ -9,6 +9,10 @@ const SerialPort = require('serialport')
 const Menu = require("electron-create-menu")
 import i18next from 'i18next'
 const { autoUpdater } = require("electron-updater")
+const {yModem} = require('./ymodem')
+const path = require('path')
+const fs = require('fs')
+const fsPromises = fs.promises
 
 let appName = "SenseCAP Node Configuration Tool"
 app.name = appName
@@ -26,7 +30,8 @@ let win
 let serialPorts = []
 let selectedSerialPort
 let serial
-
+let ymodem = new yModem(true, logger.debug)
+let updating = false
 
 let autoUpdateTimeHandler = null
 
@@ -213,7 +218,7 @@ ipcMain.on('init-serial-req', (event, arg) => {
     logger.debug(ports)
 
     let opened = false
-    if (serial && serial.isOpen) opened = true;
+    if (serial && serial.isOpen) opened = true
 
     let resp = {
       ports: ports,
@@ -244,6 +249,13 @@ function serialOpen(event) {
     if (win) {
       win.webContents.send('serial-tx', data)
     }
+    if (ymodem && updating) {
+      ymodem.emit('rx', data)
+    }
+  })
+
+  serial.on('error', (err) => {
+    logger.warn('serial error:', err)
   })
 
   serial.open()
@@ -256,6 +268,12 @@ function serialClose(cb) {
       if (cb) cb()
     })
   }
+}
+
+async function serialCloseAsync() {
+  return new Promise((resolve, reject) => {
+    serialClose(resolve)
+  })
 }
 
 ipcMain.on('serial-open-req', (event, selPort) => {
@@ -290,7 +308,7 @@ ipcMain.on('serial-close-req', (event, arg) => {
 
   let h = setTimeout(() => {
     event.reply('serial-close-resp', {closed: false, reason: 'timeout'})
-  })
+  }, 1000)
 
   serialClose(() => {
     clearTimeout(h)
@@ -309,5 +327,91 @@ ipcMain.on('current-version-req', (event, arg) => {
   let currentVersion = autoUpdater.currentVersion.version
   logger.info(`the current version is: ${currentVersion}`)
   event.reply('current-version-resp', {currentVersion: currentVersion})
+})
+
+async function sendToTerm(str) {
+  if (win) {
+    await win.webContents.send('serial-tx', str)
+  }
+}
+
+let updateTimeoutHandler
+async function progressCallback(val) {
+  let percent = `${val.toFixed(1)}%`
+  await sendToTerm('\r' + percent)
+}
+
+async function updateTimeout() {
+  if (win) {
+    win.webContents.send('update-fw-end')
+  }
+  updating = false
+  updateTimeoutHandler = null
+}
+
+function ymodemWrite(chunk, resolve, reject) {
+  if (serial) {
+    serial.write(chunk, (err) => {
+      if (err) reject()
+      else resolve()
+    })
+  }
+}
+
+ipcMain.on('select-file', async (event, selPort) => {
+  logger.info('select file ...')
+  let {canceled, filePaths} = await dialog.showOpenDialog({
+    filters: [{ name: 'Binaries', extensions: ['bin', 'hex'] }],
+    properties: ['openFile', 'openDirectory', 'noResolveAliases']
+  })
+
+  if (!canceled) {
+    let filePath = filePaths[0]
+    logger.info('selected file:', filePath)
+    if (!filePath) return
+
+    try {
+      await fsPromises.access(filePath, fs.constants.R_OK)
+    } catch (error) {
+      logger.warn('can not access file:', filePath)
+      logger.debug(error)
+      return
+    }
+
+    let fileName = path.basename(filePath)
+    await sendToTerm('\n\r\nStart to update the firmware ...\r\n')
+    let {size} = await fsPromises.stat(filePath)
+    await sendToTerm(`${fileName}\r\nsize: ${size}\r\n`)
+
+    let fileContent = await fsPromises.readFile(filePath)
+    if (fileContent) {
+      event.reply('update-fw-begin')
+      updateTimeoutHandler = setTimeout(updateTimeout, 120000)
+
+      ymodem.clearStream()
+      ymodem.on('progress', progressCallback)
+      ymodem.on('tx', ymodemWrite)
+      updating = true
+      try {
+        await ymodem.transfer(fileContent)
+      } catch (error) {
+        logger.warn('ymodem transfer error:', error)
+        await sendToTerm(`\r\nerror: ${error.message} \r\n`)
+      }
+      updating = false
+      ymodem.removeAllListeners('progress')
+      ymodem.removeAllListeners('tx')
+      if (updateTimeoutHandler) {
+        clearTimeout(updateTimeoutHandler)
+        updateTimeoutHandler = null
+      }
+      if (win) {
+        win.webContents.send('update-fw-end')
+      }
+    }
+  } else {
+    logger.info('file selection cancelled by user')
+  }
+
 })
 
