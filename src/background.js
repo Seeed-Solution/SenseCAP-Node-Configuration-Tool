@@ -13,6 +13,8 @@ const {yModem} = require('./ymodem')
 const path = require('path')
 const fs = require('fs')
 const fsPromises = fs.promises
+const Store = require('electron-store')
+const store = new Store()
 
 let appName = "SenseCAP Node Configuration Tool"
 app.name = appName
@@ -26,6 +28,7 @@ autoUpdater.logger.transports.file.level = isDevelopment ? "debug" : "info"
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let win
+let sysLocale
 
 let serialPorts = []
 let selectedSerialPort
@@ -39,7 +42,7 @@ let autoUpdateTimeHandler = null
  * The Menu's locale only follows the system, the user selection from the GUI doesn't affect
  */
 async function translateMenu() {
-  let sysLocale = process.env.LOCALE || app.getLocale()
+  sysLocale = store.get('chosenLocale') || process.env.LOCALE || app.getLocale()
   logger.info('the sys locale:', sysLocale)
 
   await i18next.init({
@@ -413,5 +416,15 @@ ipcMain.on('select-file', async (event, selPort) => {
     logger.info('file selection cancelled by user')
   }
 
+})
+
+// locale
+ipcMain.on('locale-req', (event) => {
+  event.reply('locale-resp', sysLocale)
+})
+
+ipcMain.on('locale-change', (event, arg) => {
+  i18next.changeLanguage(arg)
+  translateMenu()
 })
 

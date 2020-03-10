@@ -1,3 +1,30 @@
+<i18n>
+{
+  "en": {
+    "end": "end"
+  },
+  "zh": {
+    "Serial Port": "串口",
+    "Device Type": "设备类型",
+    "Device EUI": "设备EUI",
+    "Data Interval": "上报周期",
+    "Hardware Version": "硬件版本",
+    "Software Version": "软件版本",
+    "Read": "读取",
+    "Write": "写入",
+    "Update Fw": "更新固件",
+    "Connect": "连接",
+    "Disconnect": "断开",
+
+    "Must between [5, 43200]": "必须在[5, 43200]范围内",
+    "Must between [5, 720]": "必须在[5, 720]范围内",
+    "Invalid LoRaWAN EUI (16 chars)": "无效的LoRaWAN EUI (16字符)",
+    "Invalid LoRaPP EUI (32 chars)": "无效的LoRaPP EUI (32字符)",
+
+    "end": "结束"
+  }
+}
+</i18n>
 <template>
   <v-container fluid class="py-0">
     <v-row>
@@ -7,7 +34,7 @@
         <v-row class="pt-1">
           <!-- Fields -->
           <v-col cols="12" md="6" class="py-0">
-            <v-select v-model="selectedSerialPort" label="Serial Port"
+            <v-select v-model="selectedSerialPort" :label="$t('Serial Port')"
               :items="serialPorts"
               :disabled="serialVSelectDisable"
               @focus="onSerialVSelectClicked"
@@ -19,11 +46,11 @@
               @click="ConnectFn">{{connectBtnText}}</v-btn>
           </v-col>
           <v-col cols="12" md="6" class="pb-0">
-            <v-text-field v-model="deviceType" label="Device Type" disabled outlined dense>
+            <v-text-field v-model="deviceType" :label="$t('Device Type')" disabled outlined dense>
             </v-text-field>
           </v-col>
           <v-col cols="12" md="6" class="pb-0">
-            <v-text-field v-model="deviceEUI" label="Device EUI"
+            <v-text-field v-model="deviceEUI" :label="$t('Device EUI')"
               :rules="deviceEUIRules" outlined dense>
             </v-text-field>
           </v-col>
@@ -38,37 +65,37 @@
             </v-text-field>
           </v-col>
           <v-col cols="12" md="6" class="py-0">
-            <v-text-field v-model.number="dataInterval" type="number" label="Data Interval"
+            <v-text-field v-model.number="dataInterval" type="number" :label="$t('Data Interval')"
               :rules="dataIntervalRules"
-              suffix="minutes" outlined dense>
+              :suffix="$t('minutes')" outlined dense>
             </v-text-field>
           </v-col>
           <v-col cols="12" md="6" class="py-0">
-            <v-text-field v-model.number="battery" type="number" label="Battery"
+            <v-text-field v-model.number="battery" type="number" :label="$t('Battery')"
               suffix="%" disabled outlined dense>
             </v-text-field>
           </v-col>
           <v-col cols="12" md="6" class="py-0">
-            <v-text-field v-model="hwVer" label="Hardware Version" disabled outlined dense>
+            <v-text-field v-model="hwVer" :label="$t('Hardware Version')" disabled outlined dense>
             </v-text-field>
           </v-col>
           <v-col cols="12" md="6" class="py-0">
-            <v-text-field v-model="swVer" label="Software Version" disabled outlined dense>
+            <v-text-field v-model="swVer" :label="$t('Software Version')" disabled outlined dense>
             </v-text-field>
           </v-col>
           <!-- Buttons -->
           <v-col cols="12" class="py-0 d-flex justify-space-around">
             <v-btn rounded color="secondary" width="120"
               @click.stop="readFn()"
-              :disabled="!serialOpened">Read</v-btn>
+              :disabled="!serialOpened">{{$t('Read')}}</v-btn>
             <v-btn rounded color="secondary" width="120"
               @click.stop="writeFn()"
               :loading="writeLoading"
-              :disabled="!serialOpened">Write</v-btn>
+              :disabled="!serialOpened">{{$t('Write')}}</v-btn>
             <v-btn rounded color="secondary" width="120"
               @click.stop="updateFwFn()"
               :loading="updateFwLoading"
-              :disabled="!serialOpened">Update Fw</v-btn>
+              :disabled="!serialOpened">{{$t('Update Fw')}}</v-btn>
           </v-col>
         </v-row>
         </v-form>
@@ -81,9 +108,26 @@
       </v-col>
     </v-row>
     <v-divider></v-divider>
+    <!-- footer -->
     <v-row>
-      <v-col cols="auto">
-        <div style="width: 50px"></div>
+      <v-col cols="auto" class="d-flex flex-column align-center justify-center">
+        <div style="width: 50px">
+          <v-menu top offset-y close-on-click>
+            <template v-slot:activator="{ on }">
+              <span class="flag-icon" :class="flagIconClass" v-on="on"></span>
+            </template>
+            <v-list dense class="pa-0">
+              <v-list-item-group v-model="locale">
+                <v-list-item key="item1" class="py-0" link style="min-height: 30px;" value="en">
+                  <v-list-item-title class="caption">English</v-list-item-title>
+                </v-list-item>
+                <v-list-item key="item2" class="py-0" link style="min-height: 30px;" value="zh">
+                  <v-list-item-title class="caption">简体中文</v-list-item-title>
+                </v-list-item>
+              </v-list-item-group>
+            </v-list>
+          </v-menu>
+        </div>
       </v-col>
       <v-col class="d-flex justify-center">
         <div>
@@ -107,18 +151,21 @@ const { ipcRenderer } = require('electron')
 const { Readable } = require('stream')
 const RegexParser = require('@serialport/parser-regex')
 const ReadlineParser = require('@serialport/parser-readline')
+const Store = require('electron-store');
+const store = new Store();
+
 const delayMs = ms => new Promise(res => setTimeout(res, ms))
 
 export default {
   name: 'Home',
   data() {
     let rules = {
-      required: value => !!value || "Required.",
-      rangeWAN: value => (value >= 5 && value <=43200) || "Must between [5, 43200]",
-      rangePP: value => (value >= 5 && value <=720) || "Must between [5, 720]",
-      int: value => (/\.+/.test(value)) ? "Must be integer." : true,
-      eui16: value => (/^\w{16}$/.test(value)) || "Invalid LoRaWAN EUI (16 chars)",
-      eui32: value => (/^\w{32}$/.test(value)) || "Invalid LoRaPP EUI (32 chars)",
+      required: value => !!value || this.$t("Required."),
+      rangeWAN: value => (value >= 5 && value <=43200) || this.$t("Must between [5, 43200]"),
+      rangePP: value => (value >= 5 && value <=720) || this.$t("Must between [5, 720]"),
+      int: value => (/\.+/.test(value)) ? this.$t("Must be integer.") : true,
+      eui16: value => (/^\w{16}$/.test(value)) || this.$t("Invalid LoRaWAN EUI (16 chars)"),
+      eui32: value => (/^\w{32}$/.test(value)) || this.$t("Invalid LoRaPP EUI (32 chars)"),
     }
     return {
       //rules
@@ -131,9 +178,9 @@ export default {
       writeLoading: false,
       updateFwLoading: false,
       //
-      connectBtnText: 'Connect',
-      connectBtnColor: 'secondary',
-      serialVSelectDisable: false,
+      // connectBtnText: this.$t('Connect'),
+      // connectBtnColor: 'secondary',
+      // serialVSelectDisable: false,
       selectedSerialPort: null,
       serialPorts: [],
       serialOpened: false,
@@ -156,21 +203,12 @@ export default {
       pauseParseLine: false,
       //ota
       currentVersion: '',
-
+      //i18n
+      selectedLocaleIso: 'us',
+      locale: 'en',
     }
   },
   watch: {
-    serialOpened(newVal, oldVal) {
-      if (newVal) {
-        this.connectBtnText = 'Disconnect'
-        this.connectBtnColor = 'primary'
-        this.serialVSelectDisable = true
-      } else {
-        this.connectBtnText = 'Connect'
-        this.connectBtnColor = 'secondary'
-        this.serialVSelectDisable = false
-      }
-    },
     deviceType(newVal, oldVal) {
       if (newVal === 'LoRaWAN') {
         this.labelAppEUI = 'App EUI'
@@ -183,6 +221,29 @@ export default {
         this.appEUIRules = [this.rules.required, this.rules.eui32]
         this.dataIntervalRules = [this.rules.required, this.rules.int, this.rules.rangePP]
       }
+    },
+    locale(newVal, oldVal) {
+      console.log('locale newVal:', newVal, ', oldVal:', oldVal)
+      if (newVal === oldVal || !newVal) return
+      if (newVal === 'en') this.selectedLocaleIso = 'us'
+      else if (newVal === 'zh') this.selectedLocaleIso = 'cn'
+      this.$root.$i18n.locale = newVal
+      store.set('chosenLocale', newVal)
+      ipcRenderer.send('locale-change', newVal)
+    }
+  },
+  computed: {
+    flagIconClass: function() {
+      return 'flag-icon-' + this.selectedLocaleIso.toLowerCase()
+    },
+    connectBtnText: function() {
+      return this.serialOpened ? this.$t('Disconnect') : this.$t('Connect')
+    },
+    connectBtnColor: function() {
+      return this.serialOpened ? 'primary' : 'secondary'
+    },
+    serialVSelectDisable: function() {
+      return this.serialOpened
     }
   },
   methods: {
@@ -365,7 +426,10 @@ export default {
         console.log('found Software firmware:', found[1])
         this.swVer = found[1]
       }
-    }
+    },
+  },
+  created() {
+    this.locale = this.$i18n.locale
   },
   mounted() {
 
