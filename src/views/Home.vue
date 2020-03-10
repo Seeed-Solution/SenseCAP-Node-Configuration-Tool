@@ -178,8 +178,8 @@ export default {
         this.appEUIRules = [this.rules.required, this.rules.eui16]
         this.dataIntervalRules = [this.rules.required, this.rules.int, this.rules.rangeWAN]
       } else if (newVal === 'LoRaPP') {
-        this.labelAppEUI = 'KeyA'
-        this.labelAppKey = 'KeyB'
+        this.labelAppEUI = 'Key A'
+        this.labelAppKey = 'Key B'
         this.appEUIRules = [this.rules.required, this.rules.eui32]
         this.dataIntervalRules = [this.rules.required, this.rules.int, this.rules.rangePP]
       }
@@ -259,7 +259,9 @@ export default {
         if (needUpdateAppEUI) return delayMs(1000)
       })
       .then(() => { //app Key
-        if (needUpdateAppKey) ipcRenderer.send('serial-rx', 'k')
+        let cmd = 'k'
+        if (this.deviceType === 'LoRaPP') cmd = 'b'
+        if (needUpdateAppKey) ipcRenderer.send('serial-rx', cmd)
       }).then(() => {
         if (needUpdateAppKey) return delayMs(500)
       }).then(() => {
@@ -330,16 +332,16 @@ export default {
         console.log('confirm device EUI written:', found[1])
         this.deviceEUI2 = found[1]
       }
-      found = line.match(/App EUI:\s+(\w+)/i)
+      found = line.match(/(App EUI|Key A):\s+(\w+)/i)
       if (found) {
-        console.log('found App EUI:', found[1])
-        this.appEUI = found[1]
+        console.log('found App EUI:', found[2])
+        this.appEUI = found[2]
         this.appEUI2 = this.appEUI
       }
-      found = line.match(/App Key:\s+(\w+)/i)
+      found = line.match(/(App Key|Key B):\s+(\w+)/i)
       if (found) {
-        console.log('found App Key:', found[1])
-        this.appKey = found[1]
+        console.log('found App Key:', found[2])
+        this.appKey = found[2]
         this.appKey2 = this.appKey
       }
       found = line.match(/Data interval:\s+(\w+)/i)

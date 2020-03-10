@@ -1,6 +1,6 @@
 // 'use strict'
 
-import { app, protocol, BrowserWindow, shell, ipcMain } from 'electron'
+import { app, protocol, BrowserWindow, shell, ipcMain, dialog } from 'electron'
 import {
   createProtocol,
   /* installVueDevtools */
@@ -386,7 +386,7 @@ ipcMain.on('select-file', async (event, selPort) => {
     let fileContent = await fsPromises.readFile(filePath)
     if (fileContent) {
       event.reply('update-fw-begin')
-      updateTimeoutHandler = setTimeout(updateTimeout, 120000)
+      updateTimeoutHandler = setTimeout(updateTimeout, 300000)
 
       ymodem.clearStream()
       ymodem.on('progress', progressCallback)
