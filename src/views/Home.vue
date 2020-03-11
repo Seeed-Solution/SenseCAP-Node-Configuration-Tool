@@ -343,6 +343,9 @@ export default {
       }).then(() => {
         if (needUpdateDataInterval) return delayMs(1000)
       })
+      .then(() => { //read back finally to refresh the old value
+        this.readFn()
+      })
       .catch((err) => {
         console.warn('writeFn error:', err)
       })
