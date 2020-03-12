@@ -135,7 +135,16 @@
         </div>
       </v-col>
       <v-col cols="auto" class="d-flex flex-column align-center justify-center caption grey--text">
-        <div>v{{currentVersion}}</div>
+        <div>
+          <v-tooltip top open-delay="1000" :disabled="!newVersion">
+            <template v-slot:activator="{ on }">
+              <v-badge color="pink" dot top :value="newVersion">
+                <span v-on="on" @click="versionClicked()" id="versionText">v{{currentVersion}}</span>
+              </v-badge>
+            </template>
+            <span>v{{newVersion}} available</span>
+          </v-tooltip>
+        </div>
       </v-col>
     </v-row>
   </v-container>
@@ -203,6 +212,7 @@ export default {
       pauseParseLine: false,
       //ota
       currentVersion: '',
+      newVersion: '',
       //i18n
       selectedLocaleIso: 'us',
       locale: 'en',
@@ -435,6 +445,9 @@ export default {
       else if (locale.includes('zh')) return 'zh'
       else if (locale.includes('cn')) return 'zh'
       return 'en'
+    },
+    versionClicked() {
+      ipcRenderer.send('goto-new-version')
     }
   },
   created() {
@@ -544,6 +557,11 @@ export default {
     ipcRenderer.on('update-fw-end', (event) => {
       this.updateFwLoading = false
       this.pauseParseLine = false
+    })
+    ipcRenderer.on('update-available', (event, arg) => {
+      console.log('update-available:', arg)
+      this.newVersion = arg
+      document.getElementById('versionText').style.cursor = 'pointer'
     })
   },
   beforeDestroy() {

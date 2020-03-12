@@ -96,6 +96,8 @@ if (process.platform === 'darwin') {
 // AutoUpdater
 autoUpdater.on('update-available', (info) => {
   logger.info('update-available', JSON.stringify(info))
+  let {version} = info
+  if (win && version) win.webContents.send('update-available', version)
 })
 
 autoUpdater.on('update-not-available', (info) => {
@@ -428,5 +430,9 @@ ipcMain.on('locale-change', (event, arg) => {
   logger.info('locale-change, ', arg)
   i18next.changeLanguage(arg)
   translateMenu()
+})
+
+ipcMain.on('goto-new-version', (event) => {
+  shell.openExternal('https://github.com/Seeed-Solution/SenseCAP-Node-Configuration-Tool/releases/latest')
 })
 
