@@ -18,3 +18,7 @@ build_script:
   - yarn electron:build --win
 
 test: off
+
+branches:
+  only:
+    - master

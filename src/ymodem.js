@@ -98,15 +98,15 @@ class yModem extends EventEmitter {
     data = Buffer.concat([data, Buffer.alloc(packetLen - data.length)], packetLen)
 
     let crcString = crc.crc16xmodem(data).toString(16)
-		// Need to avoid odd string for Buffer creation
-		if(crcString.length % 2 == 1) {
-			crcString = '0'.concat(crcString)
-		}
-		// CRC must be 2 bytes of length
-		if(crcString.length === 2) {
-			crcString = '00'.concat(crcString)
-		}
-		let crc16 = Buffer.from(crcString, "hex")
+    // Need to avoid odd string for Buffer creation
+    if(crcString.length % 2 == 1) {
+      crcString = '0'.concat(crcString)
+    }
+    // CRC must be 2 bytes of length
+    if(crcString.length === 2) {
+      crcString = '00'.concat(crcString)
+    }
+    let crc16 = Buffer.from(crcString, "hex")
 
     return Buffer.concat([Buffer.from([protoHeader]), seqchr, seqchrNeg, data, crc16])
   }
