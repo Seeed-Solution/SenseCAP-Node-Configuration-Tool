@@ -33,7 +33,7 @@ module.exports = {
           'runAfterFinish': false
         },
         'win': {
-          'publisherName': ["深圳矽递科技股份有限公司"],
+          'verifyUpdateCodeSignature': false,
           'target': ['nsis', 'portable'],
           'icon': 'build/icon.ico',
         },
