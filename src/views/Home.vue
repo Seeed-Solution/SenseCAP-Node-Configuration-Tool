@@ -455,9 +455,11 @@ export default {
     if (!chosenLocale) {
       ipcRenderer.send('locale-req')
       ipcRenderer.on('locale-resp', (event, arg) => {
+        console.log('local-resp:', arg)
         chosenLocale = arg
-
         this.$root.$i18n.locale = this.formatLocale(chosenLocale)
+        this.locale = this.$root.$i18n.locale
+        console.log(`locale after requested: ${this.locale}`)
       })
     } else {
       this.$root.$i18n.locale = this.formatLocale(chosenLocale)

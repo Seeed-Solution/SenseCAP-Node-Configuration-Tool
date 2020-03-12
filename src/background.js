@@ -428,6 +428,7 @@ ipcMain.on('locale-req', (event) => {
 
 ipcMain.on('locale-change', (event, arg) => {
   logger.info('locale-change, ', arg)
+  if (arg === sysLocale) return
   i18next.changeLanguage(arg)
   translateMenu()
 })
