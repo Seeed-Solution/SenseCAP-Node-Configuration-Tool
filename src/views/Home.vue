@@ -430,9 +430,30 @@ export default {
         this.swVer = found[1]
       }
     },
+    formatLocale(locale) {
+      if (locale.includes('en')) return 'en'
+      else if (locale.includes('zh')) return 'zh'
+      else if (locale.includes('cn')) return 'zh'
+      return 'en'
+    }
   },
   created() {
-    this.locale = this.$i18n.locale
+    let chosenLocale = store.get('chosenLocale')
+    if (!chosenLocale) {
+      ipcRenderer.send('locale-req')
+      ipcRenderer.on('locale-resp', (event, arg) => {
+        chosenLocale = arg
+
+        this.$root.$i18n.locale = this.formatLocale(chosenLocale)
+      })
+    } else {
+      this.$root.$i18n.locale = this.formatLocale(chosenLocale)
+    }
+    this.locale = this.$root.$i18n.locale
+    console.log(`locale when created: ${this.locale}`)
+
+    if (this.locale === 'en') this.selectedLocaleIso = 'us'
+    else if (this.locale === 'zh') this.selectedLocaleIso = 'cn'
   },
   mounted() {
 

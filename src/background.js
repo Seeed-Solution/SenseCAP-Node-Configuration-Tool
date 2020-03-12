@@ -420,10 +420,12 @@ ipcMain.on('select-file', async (event, selPort) => {
 
 // locale
 ipcMain.on('locale-req', (event) => {
+  logger.info('locale-req ...')
   event.reply('locale-resp', sysLocale)
 })
 
 ipcMain.on('locale-change', (event, arg) => {
+  logger.info('locale-change, ', arg)
   i18next.changeLanguage(arg)
   translateMenu()
 })
