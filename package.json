@@ -1,13 +1,13 @@
 {
   "name": "sensecap_node_cfg_tool",
   "description": "SenseCAP Node Configuration Tool",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "homepage": "https://github.com/Seeed-Solution/SenseCAP-Node-Configuration-Tool",
   "repository": {
     "type": "git",
     "url": "https://github.com/Seeed-Solution/SenseCAP-Node-Configuration-Tool"
   },
-  "author": "Jack Shao <jack.shao@seeed.ccm>",
+  "author": "Jack Shao <jack.shao@seeed.cc>",
   "private": true,
   "scripts": {
     "serve": "vue-cli-service serve",
