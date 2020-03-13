@@ -366,8 +366,8 @@ function ymodemWrite(chunk, resolve, reject) {
 ipcMain.on('select-file', async (event, selPort) => {
   logger.info('select file ...')
   let {canceled, filePaths} = await dialog.showOpenDialog({
-    filters: [{ name: 'Binaries', extensions: ['bin', 'hex'] }],
-    properties: ['openFile', 'openDirectory', 'noResolveAliases']
+    filters: [{ name: 'Binaries', extensions: ['bin', 'hex']}, { name: 'All Files', extensions: ['*']}],
+    properties: ['openFile', 'noResolveAliases']
   })
 
   if (!canceled) {
