@@ -224,12 +224,12 @@ export default {
         this.labelAppEUI = 'App EUI'
         this.labelAppKey = 'App Key'
         this.appEUIRules = [this.rules.required, this.rules.eui16]
-        this.dataIntervalRules = [this.rules.required, this.rules.int, this.rules.rangeWAN]
+        // this.dataIntervalRules = [this.rules.required, this.rules.int, this.rules.rangeWAN]
       } else if (newVal === 'LoRaPP') {
         this.labelAppEUI = 'Key A'
         this.labelAppKey = 'Key B'
         this.appEUIRules = [this.rules.required, this.rules.eui32]
-        this.dataIntervalRules = [this.rules.required, this.rules.int, this.rules.rangePP]
+        // this.dataIntervalRules = [this.rules.required, this.rules.int, this.rules.rangePP]
       }
     },
     locale(newVal, oldVal) {
