@@ -1,7 +1,7 @@
 {
   "name": "sensecap_node_cfg_tool",
   "description": "SenseCAP Node Configuration Tool",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "homepage": "https://github.com/Seeed-Solution/SenseCAP-Node-Configuration-Tool",
   "repository": {
     "type": "git",

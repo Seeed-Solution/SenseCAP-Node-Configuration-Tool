@@ -369,7 +369,7 @@ export default {
       delayMs(500).then(() => {
         ipcRenderer.send('serial-rx', 'h')
       }).then(() => {
-        return delayMs(500)
+        return delayMs(1000)
       })
       .then(() => { //update firmware
         this.pauseParseLine = true

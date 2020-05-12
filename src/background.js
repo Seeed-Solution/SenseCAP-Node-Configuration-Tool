@@ -416,6 +416,7 @@ ipcMain.on('select-file', async (event, selPort) => {
     }
   } else {
     logger.info('file selection cancelled by user')
+    serial.write('a')
   }
 
 })
