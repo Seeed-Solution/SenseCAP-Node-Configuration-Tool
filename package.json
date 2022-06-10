@@ -1,7 +1,7 @@
 {
   "name": "sensecap_node_cfg_tool",
   "description": "SenseCAP Node Configuration Tool",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "homepage": "https://github.com/Seeed-Solution/SenseCAP-Node-Configuration-Tool",
   "repository": {
     "type": "git",
@@ -29,7 +29,7 @@
     "electron-updater": "4.2.2",
     "i18next": "^19.3.2",
     "roboto-fontface": "*",
-    "serialport": "^8.0.7",
+    "serialport": "^10.4.0",
     "vue": "^2.6.11",
     "vue-i18n": "^8.15.5",
     "vue-router": "^3.1.5",
@@ -51,6 +51,7 @@
     "eslint": "^6.7.2",
     "eslint-plugin-vue": "^6.1.2",
     "flag-icon-css": "^3.4.6",
+    "node-sass": "^6.0.1",
     "sass": "^1.19.0",
     "sass-loader": "^8.0.0",
     "vue-cli-plugin-electron-builder": "~1.4.5",
