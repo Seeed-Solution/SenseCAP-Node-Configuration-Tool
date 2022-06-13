@@ -158,8 +158,8 @@ import { FitAddon } from 'xterm-addon-fit'
 import 'xterm/css/xterm.css'
 const { ipcRenderer } = require('electron')
 const { Readable } = require('stream')
-const RegexParser = require('@serialport/parser-regex')
-const ReadlineParser = require('@serialport/parser-readline')
+// const RegexParser = require('@serialport/parser-regex')
+const {ReadlineParser} = require('@serialport/parser-readline')
 const Store = require('electron-store');
 const store = new Store();
 

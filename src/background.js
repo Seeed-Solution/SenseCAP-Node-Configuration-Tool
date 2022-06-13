@@ -5,7 +5,7 @@ import {
   createProtocol,
   /* installVueDevtools */
 } from 'vue-cli-plugin-electron-builder/lib'
-const SerialPort = require('serialport')
+const {SerialPort} = require('serialport')
 const Menu = require("electron-create-menu")
 import i18next from 'i18next'
 const { autoUpdater } = require("electron-updater")
@@ -121,7 +121,8 @@ function createWindow () {
     width: w,
     height: h,
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: true,
+      enableRemoteModule: true
     }
   })
 

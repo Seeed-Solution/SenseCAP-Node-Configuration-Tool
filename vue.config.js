@@ -3,12 +3,15 @@ module.exports = {
     "vuetify"
   ],
   chainWebpack: config => {
+    //disable splitChunks for electron multi windows Apps
+    //may reduce the packed resources' size
+    config.optimization.delete("splitChunks");
     config.module
       .rule("i18n")
       .resourceQuery(/blockType=i18n/)
       .type('javascript/auto')
       .use("i18n")
-        .loader("@kazupon/vue-i18n-loader")
+        .loader("@intlify/vue-i18n-loader")
         .end();
   },
   pluginOptions: {
@@ -18,6 +21,8 @@ module.exports = {
       // If you are using Yarn Workspaces, you may have multiple node_modules folders
       // List them all here so that VCP Electron Builder can find them
       // nodeModulesPath: ['../../node_modules', './node_modules']
+
+      nodeIntegration: true,
 
       builderOptions: {
         // options placed here will be merged with default configuration and passed to electron-builder
