@@ -121,8 +121,7 @@ function createWindow () {
     width: w,
     height: h,
     webPreferences: {
-      nodeIntegration: true,
-      enableRemoteModule: true
+      nodeIntegration: true
     }
   })
 
@@ -149,10 +148,11 @@ function createWindow () {
 app.on('window-all-closed', () => {
   // On macOS it is common for applications and their menu bar
   // to stay active until the user quits explicitly with Cmd + Q
-  if (process.platform !== 'darwin') {
+  // if (process.platform !== 'darwin') {
+    logger.info('all windows are closed')
     serialClose()
     app.quit()
-  }
+  // }
 })
 
 app.on('activate', () => {
