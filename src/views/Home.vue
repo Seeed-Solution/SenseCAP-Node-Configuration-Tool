@@ -26,7 +26,7 @@
 }
 </i18n>
 <template>
-  <v-container fluid class="py-0">
+  <v-container fluid class="py-0" fill-height>
     <v-row>
       <!-- 左半屏，输入框 -->
       <v-col cols="6">

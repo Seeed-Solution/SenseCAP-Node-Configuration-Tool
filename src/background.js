@@ -237,7 +237,8 @@ ipcMain.on('init-serial-req', (event, arg) => {
 })
 
 function serialOpen(event) {
-  serial = new SerialPort(selectedSerialPort, {
+  serial = new SerialPort({
+    path: selectedSerialPort,
     baudRate: 115200,
     autoOpen: false
   })
